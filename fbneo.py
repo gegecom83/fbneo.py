@@ -436,10 +436,10 @@ class AboutDialog(QDialog):
         layout.addWidget(logo_label)
 
         text_label = QLabel(
-            "A PyQt6-based GUI launcher for FinalBurn Neo (Libretro core) \n"
-            "supporting many retro systems, ROM metadata, and images \n"
             " \n"
-            "https://github.com/gegecom83/fbneo_libretro.py"
+            "A PyQt6-based GUI launcher \n for FinalBurn Neo (Libretro core) \n"
+            " \n"
+            "https://github.com/gegecom83/fbneo.py"
         )
         text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(text_label, stretch=1)
