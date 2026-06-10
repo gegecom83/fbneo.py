@@ -16,8 +16,9 @@
         "Sega Master System": "",
         "Sega Megadrive": "",
         "Sega SG-1000": "",
-        "SNK Neo-Geo Pocket": "",
+        "SNK Neo-Geo": "",
         "SNK Neo-Geo CD": "",
+        "SNK Neo-Geo Pocket": "",
         "ZX Spectrum": ""
     },
     "xml_dat_files": {
@@ -35,8 +36,9 @@
         "Sega Master System": "",
         "Sega Megadrive": "",
         "Sega SG-1000": "",
-        "SNK Neo-Geo Pocket": "",
+        "SNK Neo-Geo": "",
         "SNK Neo-Geo CD": "",
+        "SNK Neo-Geo Pocket": "",
         "ZX Spectrum": ""
     },
     "title_image_dirs": {
@@ -54,8 +56,9 @@
         "Sega Master System": "",
         "Sega Megadrive": "",
         "Sega SG-1000": "",
-        "SNK Neo-Geo Pocket": "",
+        "SNK Neo-Geo": "",
         "SNK Neo-Geo CD": "",
+        "SNK Neo-Geo Pocket": "",
         "ZX Spectrum": ""
     },
     "preview_image_dirs": {
@@ -73,8 +76,9 @@
         "Sega Master System": "",
         "Sega Megadrive": "",
         "Sega SG-1000": "",
-        "SNK Neo-Geo Pocket": "",
+        "SNK Neo-Geo": "",
         "SNK Neo-Geo CD": "",
+        "SNK Neo-Geo Pocket": "",
         "ZX Spectrum": ""
     },
     "display_only_rom_list": false,

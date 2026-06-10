@@ -29,8 +29,9 @@ TAB_CONFIGS = [
     {"name": "Sega Master System"},
     {"name": "Sega Megadrive"},
     {"name": "Sega SG-1000"},
-    {"name": "SNK Neo-Geo Pocket"},
+    {"name": "SNK Neo-Geo"},
     {"name": "SNK Neo-Geo CD"},
+    {"name": "SNK Neo-Geo Pocket"},
     {"name": "ZX Spectrum"}
 ]
 
@@ -366,7 +367,7 @@ class SettingsDialog(QDialog):
         self.setLayout(dlg_layout)
 
         self.update_sys_fields(self.sys_dropdown.currentIndex())
-        self.setMinimumSize(640, 530)
+        self.setMinimumSize(640, 480)
 
     def choose_retroarch(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Select RetroArch Executable", "", "All Files (*)")
