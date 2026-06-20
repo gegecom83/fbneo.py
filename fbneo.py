@@ -367,7 +367,7 @@ class SettingsDialog(QDialog):
         self.setLayout(dlg_layout)
 
         self.update_sys_fields(self.sys_dropdown.currentIndex())
-        self.setMinimumSize(640, 480)
+        self.setMinimumSize(734, 349)
 
     def choose_retroarch(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Select RetroArch Executable", "", "All Files (*)")
@@ -439,6 +439,7 @@ class AboutDialog(QDialog):
         text_label = QLabel(
             " \n"
             "A PyQt6-based GUI launcher \n for FinalBurn Neo (Libretro core) \n"
+            "© June, 2026"
             " \n"
             "https://github.com/gegecom83/fbneo.py"
         )
@@ -763,6 +764,6 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = MainWindow()
-    win.resize(1100, 640)
+    win.resize(896, 694)
     win.show()
     sys.exit(app.exec())
