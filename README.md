@@ -32,21 +32,24 @@ python fbneo.py
 | System |
 |---|
 | Arcade |
+| Bally Astrocade Home Computer |
 | CBS ColecoVision |
 | Fairchild ChannelF |
 | MSX 1 |
 | Nec PC-Engine |
+| Nec PC-Engine CD |
 | Nec SuperGrafX |
 | Nec TurboGrafx-16 |
 | Nintendo Entertainment System |
 | Nintendo Family Disk System |
+| Nintendo Game Boy Advance |
 | Super Nintendo Entertainment System |
 | Sega GameGear |
 | Sega Master System |
 | Sega Megadrive |
 | Sega SG-1000 |
-| SNK Neo-Geo Pocket |
 | SNK Neo-Geo CD |
+| SNK Neo-Geo Pocket |
 | ZX Spectrum |
 
 ---
@@ -56,7 +59,9 @@ python fbneo.py
 ```
 fbneo.py                   # Main script
 config.json                # Configuration (auto-generated)
+debug.log                  # Debug Mode (checkbox in the UI)
 icon.ico / icon.png        # Icon
+
 ```
 
 ### XML/DAT Files
@@ -91,6 +96,7 @@ Available settings:
 - **Search** — filter ROMs by name
 - **Year / Manufacturer** — additional filters from the DAT file
 - **Hide Clones** — hide clone ROMs
+- **Debug Mode** — A dialog box displays the command before execution, with OK/Cancel options and a log file is generated
 - **Double-click** or **Enter** — launch the selected ROM
 - **Right-click** — add the ROM to favorites
 - **Tooltip** — hovering over a game shows the ROM filename
@@ -117,6 +123,7 @@ Example prefixes: `nes_`, `md_`, `snes_`, `pce_`, `gg_`...
 
 - `.zip`
 - `.7z`
-- `.cue` (Neo-Geo CD — recursive folder search)
+- `.cue` (Neo-Geo CD / PC-Engine CD — recursive folder search)
+- `.chd` (Neo-Geo CD / PC-Engine CD — recursive folder search)
 
 ---

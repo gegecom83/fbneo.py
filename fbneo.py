@@ -1,9 +1,29 @@
 import sys
 import os
 import subprocess
+import shlex
 import json
+import logging
 from pathlib import Path
 import xml.etree.ElementTree as ET
+
+CLI_DEBUG = "--debug" in sys.argv or "-d" in sys.argv
+
+DEBUG_LOG_FILE = Path("debug.log")
+_debug_logger = None
+
+def get_debug_logger():
+    """Lazily-initialized logger, only set up when debug mode is actually used."""
+    global _debug_logger
+    if _debug_logger is None:
+        logger = logging.getLogger("debug")
+        logger.setLevel(logging.DEBUG)
+        handler = logging.FileHandler(DEBUG_LOG_FILE, encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+        logger.addHandler(handler)
+        logger.propagate = False
+        _debug_logger = logger
+    return _debug_logger
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -16,24 +36,52 @@ from PyQt6.QtGui import QIcon, QPixmap
 
 TAB_CONFIGS = [
     {"name": "Arcade"},
+    {"name": "Bally Astrocade Home Computer"},
     {"name": "CBS ColecoVision"},
     {"name": "Fairchild ChannelF"},
     {"name": "MSX 1"},
     {"name": "Nec PC-Engine"},
+    {"name": "Nec PC-Engine CD"},
     {"name": "Nec SuperGrafX"},
     {"name": "Nec TurboGrafx-16"},
     {"name": "Nintendo Entertainment System"},
     {"name": "Nintendo Family Disk System"},
+    {"name": "Nintendo Game Boy Advance"},
     {"name": "Super Nintendo Entertainment System"},
     {"name": "Sega GameGear"},
     {"name": "Sega Master System"},
     {"name": "Sega Megadrive"},
     {"name": "Sega SG-1000"},
-    {"name": "SNK Neo-Geo"},
-    {"name": "SNK Neo-Geo CD"},
-    {"name": "SNK Neo-Geo Pocket"},
+    {"name": "SNK Neo Geo"},
+    {"name": "SNK Neo Geo CD"},
+    {"name": "SNK Neo Geo Pocket"},
     {"name": "ZX Spectrum"}
 ]
+
+SUBSYSTEM_MAP = {
+    "Bally Astrocade Home Computer": "astro",
+    "CBS ColecoVision": "cv",
+    "Fairchild ChannelF": "chf",
+    "MSX 1": "msx",
+    "Nec PC-Engine": "pce",
+    "Nec PC-Engine CD": "pcecd",
+    "Nec SuperGrafX": "sgx",
+    "Nec TurboGrafx-16": "tg16",
+    "Nintendo Entertainment System": "nes",
+    "Nintendo Family Disk System": "fds",
+    "Nintendo Game Boy Advance": "gba",
+    "Super Nintendo Entertainment System": "snes",
+    "Sega GameGear": "gg",
+    "Sega Master System": "sms",
+    "Sega Megadrive": "md",
+    "Sega SG-1000": "sg1k",
+    "SNK Neo Geo CD": "neocd",
+    "SNK Neo Geo Pocket": "ngp",
+    "ZX Spectrum": "spec",
+}
+
+CD_SYSTEMS = {"SNK Neo Geo CD", "Nec PC-Engine CD"}
+CD_EXTENSIONS = (".cue", ".chd")
 
 CONFIG_FILE = Path("config.json")
 DEFAULT_CONFIG = {
@@ -45,6 +93,7 @@ DEFAULT_CONFIG = {
     "preview_image_dirs": {config["name"]: "" for config in TAB_CONFIGS},
     "display_only_rom_list": False,
     "hide_clones": False,
+    "debug_mode": False,
     "favorites": []
 }
 
@@ -57,6 +106,7 @@ def load_config():
                 cfg[k] = {config["name"]: "" for config in TAB_CONFIGS}
         cfg.setdefault("display_only_rom_list", False)
         cfg.setdefault("hide_clones", False)
+        cfg.setdefault("debug_mode", False)
         cfg.setdefault("favorites", [])
         return cfg
     save_config(DEFAULT_CONFIG)
@@ -114,10 +164,10 @@ def get_rom_list_cached(roms_dir, system_name, xml_dat_file, cache_dict):
         cache_dict[cache_key] = []
         return []
     roms = []
-    if system_name == "SNK Neo-Geo CD":
+    if system_name in CD_SYSTEMS:
         for root, _, files in os.walk(roms_dir):
             for f in files:
-                if f.lower().endswith('.cue'):
+                if f.lower().endswith(CD_EXTENSIONS):
                     rel_path = os.path.relpath(os.path.join(root, f), roms_dir)
                     roms.append(rel_path)
     else:
@@ -130,7 +180,7 @@ def get_rom_list_cached(roms_dir, system_name, xml_dat_file, cache_dict):
         stem = Path(rom).stem
         if stem.lower() in ROM_HIDE_LIST:
             continue
-        if system_name == "SNK Neo-Geo CD":
+        if system_name in CD_SYSTEMS:
             if stem.lower() in meta:
                 title, year, manuf, is_clone = meta[stem.lower()]
             else:
@@ -161,7 +211,7 @@ def filter_rom_list(rom_list, search="", year_filter="", manuf_filter="", hide_c
             filtered.append((rom, title, year, manuf, is_clone))
     return filtered
 
-def run_rom(rom, roms_dir, retroarch, core, system_name, win):
+def run_rom(rom, roms_dir, retroarch, core, system_name, win, debug=False):
     rom_path = os.path.join(roms_dir, rom)
     if not os.path.exists(rom_path):
         QMessageBox.critical(win, "Error", f"ROM file not found: {rom_path}")
@@ -179,12 +229,33 @@ def run_rom(rom, roms_dir, retroarch, core, system_name, win):
         )
         return
     cmd = [retroarch, "-L", core]
-    if system_name == "SNK Neo-Geo CD" or rom.lower().endswith(".cue"):
-        cmd.extend(["--subsystem", "neocd"])
+    subsystem = SUBSYSTEM_MAP.get(system_name)
+    if subsystem:
+        cmd.extend(["--subsystem", subsystem])
     cmd.append(rom_path)
+
+    if debug:
+        cmd_str = shlex.join(cmd)
+        logger = get_debug_logger()
+        logger.info(f"ROM={rom} | System={system_name} | Command: {cmd_str}")
+        print(f"[DEBUG] Launch command: {cmd_str}", flush=True)
+        reply = QMessageBox.question(
+            win,
+            "Debug - Launch Command",
+            f"Command about to be executed:\n\n{cmd_str}\n\n(logged to {DEBUG_LOG_FILE})\n\nProceed with launch?",
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Ok,
+        )
+        if reply != QMessageBox.StandardButton.Ok:
+            logger.info(f"ROM={rom} | Launch cancelled by user.")
+            print("[DEBUG] Launch cancelled by user.", flush=True)
+            return
+
     try:
         subprocess.Popen(cmd)
     except Exception as e:
+        if debug:
+            get_debug_logger().error(f"ROM={rom} | Failed to launch: {e}")
         QMessageBox.critical(win, "Error", f"Failed to launch ROM: {e}")
 
 
@@ -236,7 +307,8 @@ class FavoritesDialog(QDialog):
         else:
             system_name, rom, title, _, _ = fav[:5]
         roms_dir = self.cfg["roms_dirs"].get(system_name, "")
-        run_rom(rom, roms_dir, self.cfg["RETROARCH"], self.cfg["RETROARCH_CORE"], system_name, self)
+        debug = self.cfg.get("debug_mode", False) or CLI_DEBUG
+        run_rom(rom, roms_dir, self.cfg["RETROARCH"], self.cfg["RETROARCH_CORE"], system_name, self, debug=debug)
 
     def show_context_menu(self, position):
         idx = self.favorites_list.currentRow()
@@ -503,6 +575,7 @@ class AspectRatioLabel(QLabel):
 
 class MainWindow(QMainWindow):
     SYSTEM_IMAGE_PREFIXES = {
+        "Bally Astrocade Home Computer": "astro_",
         "CBS ColecoVision": "cv_",
         "Fairchild ChannelF": "chf_",
         "MSX 1": "msx_",
@@ -511,12 +584,13 @@ class MainWindow(QMainWindow):
         "Nec TurboGrafx-16": "tg_",
         "Nintendo Entertainment System": "nes_",
         "Nintendo Family Disk System": "fds_",
+        "Nintendo Game Boy Advance": "gba_",
         "Super Nintendo Entertainment System": "snes_",
         "Sega GameGear": "gg_",
         "Sega Master System": "sms_",
         "Sega Megadrive": "md_",
         "Sega SG-1000": "sg1k_",
-        "SNK Neo-Geo Pocket": "ngp_",
+        "SNK Neo Geo Pocket": "ngp_",
         "ZX Spectrum": "spec_"
     }
 
@@ -562,6 +636,11 @@ class MainWindow(QMainWindow):
         self.hide_clones_chk.setChecked(self.cfg.get("hide_clones", False))
         self.hide_clones_chk.toggled.connect(self.toggle_hide_clones)
 
+        self.debug_chk = QCheckBox("Debug Mode")
+        self.debug_chk.setChecked(self.cfg.get("debug_mode", False))
+        self.debug_chk.setToolTip("Show the RetroArch command before each ROM launch (console + dialog + log file).")
+        self.debug_chk.toggled.connect(self.toggle_debug_mode)
+
         self.settings_btn = QPushButton("Settings")
         self.settings_btn.setMaximumWidth(80)
         self.settings_btn.setMinimumHeight(24)
@@ -576,6 +655,7 @@ class MainWindow(QMainWindow):
         settings_row.addWidget(self.rom_count_label)
         settings_row.addStretch(1)
         settings_row.addWidget(self.hide_clones_chk)
+        settings_row.addWidget(self.debug_chk)
         settings_row.addWidget(self.favorites_btn)
         settings_row.addWidget(self.settings_btn)
 
@@ -641,6 +721,10 @@ class MainWindow(QMainWindow):
         self.cfg["hide_clones"] = checked
         save_config(self.cfg)
         self.update_rom_list()
+
+    def toggle_debug_mode(self, checked):
+        self.cfg["debug_mode"] = checked
+        save_config(self.cfg)
 
     def show_about(self):
         AboutDialog(self).exec()
@@ -752,7 +836,8 @@ class MainWindow(QMainWindow):
         rom = self.roms[idx][0]
         sys_cfg = self.current_system()[0]
         sys_name = sys_cfg["name"]
-        run_rom(rom, self.cfg["roms_dirs"].get(sys_name, ""), self.cfg["RETROARCH"], self.cfg["RETROARCH_CORE"], sys_name, self)
+        debug = self.cfg.get("debug_mode", False) or CLI_DEBUG
+        run_rom(rom, self.cfg["roms_dirs"].get(sys_name, ""), self.cfg["RETROARCH"], self.cfg["RETROARCH_CORE"], sys_name, self, debug=debug)
 
     def show_settings(self):
         dlg = SettingsDialog(self.cfg, self, self.current_system, self.update_rom_list)
